@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>横琴-产品url配置</title>
+  <link rel="stylesheet" type="text/css" href="reset.css">
+  <link rel="stylesheet" type="text/css" href="index.css">
+  <script src="jquery-3.3.1.min.js"></script>
+</head>
+<body>
+<div class="url">
+  <div class="header">
+    横琴-产品url配置
+  </div>
+  <div class="env">
+    <div class="url-title">环境配置</div>
+  </div>
+  <div class="product">
+    <div class="url-title">活动及产品配置</div>
+    <div class="product-set">
+      <div class="activity-name">
+        <span class="activity-title">活动名称：</span>
+        <input type="text" class="activity-input" placeholder="请输入活动名称">
+      </div>
+      <div class="activity-name">
+        <span class="activity-title">activityId：</span>
+        <input type="text" class="activity-input" placeholder="请输入活动id">
+      </div>
+      <div class="activity-name">
+        <span class="activity-title">agent：</span>
+        <input type="text" class="activity-input" placeholder="请输入代理人工号">
+      </div>
+      <div class="activity-name">
+        <span class="activity-title">channelNo：</span>
+        <input type="text" class="activity-input" placeholder="请输入渠道号">
+      </div>
+    </div>
+    <div class="product-content">
+      <div class="product-detail">
+      </div>
+      <div class="submit">
+        <span class="submit-button" onclick="onSubmit()">提交</span>
+        <span class="submit-clear" onclick="onClear()">清除</span>
+      </div>
+    </div>
+  </div>
+  <div class="result">
+    <div class="url-title">配置结果</div>
+
+  </div>
+</div>
+<script>
+  var envList = [];
+  var productList = [];
+  $(document).ready(function () {
+    //加载环境参数
+    envList = [{name: 'test环境', env: 'http://hengqinlife-test.e-hqins.com'},
+      {name: 'uat环境', env: 'http://hengqinlife-uat.e-hqins.com'},
+      {name: '生产环境', env: 'http://wechat.e-hqins.com'}];
+    if (envList.length > 0) {
+      let envParent = $('.env');
+      for (let i = 0; i < envList.length; i++) {
+        let envItem = $("<div class='env-item'></div>");
+        let envItemTitle = $("<span class='env-item-title'></span>").text(envList[i].name);
+        let envItemCon = $("<span class='env-item-input'></span>").text(envList[i].env);
+        envItem.append(envItemTitle, envItemCon);
+        envParent.append(envItem);
+      }
+    }
+    //获取产品列表
+    productList = [{
+      name: '小猪罐', products: [{productId: 10037, name: "横琴宜家年金保险（万能型）", productUrl: '/moneyProductDetail'}]
+    }, {
+      name: '常规产品', products: [{productId: 10035, name: "海陆空交通意外险", productUrl: '/productDetailNew'},
+        {productId: 10034, name: "超值自驾保", productUrl: '/productDetailNew'},
+        {productId: 10029, name: "优护宝终身意外险", productUrl: '/productDetailNew'},
+        {productId: 10021, name: "百万医疗险", productUrl: '/productDetailNew'},
+        {productId: 10027, name: "优爱宝终身寿险", productUrl: '/productDetailNew'},
+        {productId: 10018, name: "百万乐途两全保险", productUrl: '/productDetailNew'},
+        {productId: 10025, name: "优康保终身重大疾病保险", productUrl: '/productDetailNew'},
+        {productId: 10020, name: "优护宝定期意外伤害保险", productUrl: '/productDetailNew'},
+        {productId: 10019, name: "优爱宝定期寿险", productUrl: '/productDetailNew'}]
+    }];
+    let productDetail = $('.product-detail');
+    for (let i = 0; i < productList.length; i++) {
+      let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].name);
+      productDetail.append(formItemTitle);
+      let products = productList[i].products;
+      for (let j = 0; j < products.length; j++) {
+        let formItem = $("<div class='form-item'></div>");
+        let productName = $("<span class='form-item-name'></span>").text(products[j].name);
+        let productId = $("<span class='form-item-id'></span>").text(products[j].productId);
+        let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productId);
+        formItem.append(productName, productId, productCheck);
+        productDetail.append(formItem);
+      }
+    }
+  });
+
+  //刷新
+  function onClear() {
+    console.log(222);
+    window.location.reload();
+  }
+
+  //提交
+  function onSubmit() {
+    //活动名称
+    let activityName = $('.activity-input')[0].value;
+    //活动id
+    let activityId = $('.activity-input')[1].value;
+    //代理工号
+    let agent = $('.activity-input')[2].value;
+    //渠道号
+    let channelNo = $('.activity-input')[3].value;
+    //生成activity
+    let params = {activityId: activityId, channelNo: channelNo, shareId: '', shareFrom: ''};
+    let activity = btoa(JSON.stringify(params));
+    getCheckedProducts(activityName, activity,agent);
+  }
+
+  function getCheckedProducts(activityName, activity,agent) {
+    //获取被勾选的产品
+    let checkboxList = $('input');
+    let checkedAllList = [];
+    let checkedIdList = [];
+    for (let i = 0; i < checkboxList.length; i++) {
+      if (checkboxList[i].checked) {
+        let checkedId = $(checkboxList[i]).val();
+        checkedIdList.push(checkedId);
+      }
+    }
+    if (checkedIdList.length < 1) {
+      alert('请选择要配置的商品');
+      return;
+    }
+    productList.forEach(items => {
+      let checkrdItem = {};
+      let checkedList = [];
+      items.products.forEach(item => {
+        for (let i = 0; i < checkedIdList.length; i++) {
+          if (item.productId == checkedIdList[i]) {
+            checkrdItem.name = items.name;
+            checkedList.push(item);
+          }
+        }
+        checkrdItem.products = checkedList;
+      });
+      if (checkrdItem.products && checkrdItem.products.length > 0) {
+        checkedAllList.push(checkrdItem);
+      }
+    });
+    let result = $('.result');
+    //活动名称
+    result.append($("<div class='result-title'></div>").text(activityName));
+    envList.forEach(item => {
+      //环境名称
+      result.append($("<div class='result-content-env'></div>").text(item.name));
+      createUrl(item.env, checkedAllList, activity, result,agent);
+    })
+  }
+
+  //拼接产品参数
+  function createUrl(env, checkedAllList, activity, result,agent) {
+    checkedAllList.forEach(items => {
+      items.products.forEach(item => {
+        //商品名称
+        result.append($("<p class=\"result-item-c\"></p>").text(item.name));
+        //活动链接
+        let url = `${env}${item.productUrl}?productId=${item.productId}&agent=${agent}&activity=${encodeURIComponent(activity)}`;
+        result.append($("<p class=\"result-item-c\"></p>").text(url));
+      })
+    })
+  }
+</script>
+</body>
+</html>
