@@ -51,7 +51,14 @@
 </div>
 <script>
   var envList = [];
+  var envApi = 'http://106.14.194.157:9034';
   var productList = [];
+  var activityId = '';//活动id
+  var activityName = '';//活动名称
+  var channelNo = '';//渠道号
+  var sharePersonId = '';//分享人ID
+  var sharePersonFrom = '';//分享来源
+  var agentCode = '';//代理人工号
   $(document).ready(function () {
     //加载环境参数
     envList = [{name: 'test环境', env: 'http://hengqinlife-test.e-hqins.com'},
@@ -68,29 +75,32 @@
       }
     }
     //获取产品列表
-    productList = [{
-      name: '小猪罐', products: [{productId: 10037, name: "横琴宜家年金保险（万能型）", productUrl: '/moneyProductDetail'}]
-    }, {
-      name: '常规产品', products: [{productId: 10035, name: "海陆空交通意外险", productUrl: '/productDetailNew'},
-        {productId: 10034, name: "超值自驾保", productUrl: '/productDetailNew'},
-        {productId: 10029, name: "优护宝终身意外险", productUrl: '/productDetailNew'},
-        {productId: 10021, name: "百万医疗险", productUrl: '/productDetailNew'},
-        {productId: 10027, name: "优爱宝终身寿险", productUrl: '/productDetailNew'},
-        {productId: 10018, name: "百万乐途两全保险", productUrl: '/productDetailNew'},
-        {productId: 10025, name: "优康保终身重大疾病保险", productUrl: '/productDetailNew'},
-        {productId: 10020, name: "优护宝定期意外伤害保险", productUrl: '/productDetailNew'},
-        {productId: 10019, name: "优爱宝定期寿险", productUrl: '/productDetailNew'}]
-    }];
+    $.post(envApi + '/api/activityProductAndModuleService/findAll', {}, function (result) {
+      if (result.code=='200'&&result.success) {
+        productList=result.data;
+      }else{
+        alert('获取产品失败');
+      }
+    });
+//    productList = [{
+//      productModule: '小猪罐',
+//      product: [{productCode: 10037, productName: "横琴宜家年金保险（万能型）", productUrl: '/moneyProductDetail'}]
+//    }, {
+//      productModule: '常规产品',
+//      product: [{productCode: 10035, productName: "海陆空交通意外险", productUrl: '/productDetailNew'},
+//        {productCode: 10034, productName: "超值自驾保", productUrl: '/productDetailNew'},
+//        {productCode: 10029, productName: "优护宝终身意外险", productUrl: '/productDetailNew'}]
+//    }];
     let productDetail = $('.product-detail');
     for (let i = 0; i < productList.length; i++) {
-      let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].name);
+      let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].productModule);
       productDetail.append(formItemTitle);
-      let products = productList[i].products;
+      let products = productList[i].product;
       for (let j = 0; j < products.length; j++) {
         let formItem = $("<div class='form-item'></div>");
-        let productName = $("<span class='form-item-name'></span>").text(products[j].name);
-        let productId = $("<span class='form-item-id'></span>").text(products[j].productId);
-        let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productId);
+        let productName = $("<span class='form-item-name'></span>").text(products[j].productName);
+        let productId = $("<span class='form-item-id'></span>").text(products[j].productCode);
+        let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productCode);
         formItem.append(productName, productId, productCheck);
         productDetail.append(formItem);
       }
@@ -99,27 +109,87 @@
 
   //刷新
   function onClear() {
-    console.log(222);
     window.location.reload();
   }
 
   //提交
   function onSubmit() {
     //活动名称
-    let activityName = $('.activity-input')[0].value;
+    activityName = $('.activity-input')[0].value;
     //活动id
-    let activityId = $('.activity-input')[1].value;
+    activityId = $('.activity-input')[1].value;
     //代理工号
-    let agent = $('.activity-input')[2].value;
+    agentCode = $('.activity-input')[2].value;
     //渠道号
-    let channelNo = $('.activity-input')[3].value;
+    channelNo = $('.activity-input')[3].value;
     //生成activity
     let params = {activityId: activityId, channelNo: channelNo, shareId: '', shareFrom: ''};
     let activity = btoa(JSON.stringify(params));
-    getCheckedProducts(activityName, activity,agent);
+    getCheckedProducts(activityName, activity);
+    //上传信息
+    getCreatedProducts(activityName, activity,);
   }
 
-  function getCheckedProducts(activityName, activity,agent) {
+  function getCreatedProducts(activityName, activity) {
+    //获取被勾选的产品
+    let checkboxList = $('input');
+    let checkedAllList = [];
+    let checkedIdList = [];
+    for (let i = 0; i < checkboxList.length; i++) {
+      if (checkboxList[i].checked) {
+        let checkedId = $(checkboxList[i]).val();
+        checkedIdList.push(checkedId);
+      }
+    }
+    if (checkedIdList.length < 1) {
+      alert('请选择要配置的商品');
+      return;
+    }
+    let checkedList = [];
+    productList.forEach(items => {
+      let activityUrl = {};
+      items.product.forEach(item => {
+        let checkedItem = {};
+        for (let i = 0; i < checkedIdList.length; i++) {
+          if (item.productCode == checkedIdList[i]) {
+            checkedItem.productId = item.productCode;
+            checkedItem.productName = item.productName;
+            envList.forEach(envItem => {
+              let url = `${envItem.env}${item.productUrl}?productId=${item.productCode}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
+              if (envItem.name == 'test环境') {
+                activityUrl.test = url;
+              } else if (envItem.name == 'uat环境') {
+                activityUrl.uat = url;
+              } else if (envItem.name == '生产环境') {
+                activityUrl.prd = url;
+              }
+            });
+            checkedItem.activityUrl = activityUrl;
+            checkedList.push(checkedItem);
+          }
+        }
+      });
+    });
+    let paramsObj = {
+      activityId: activityId,
+      activityName: activityName,
+      channelNo: channelNo,
+      agentCode: agentCode,
+      sharePersonId: sharePersonId,
+      sharePersonFrom: sharePersonFrom,
+      activityProductList: checkedList
+    };
+    //上传数据
+    $.post(envApi + 'api/ActivityProductDetailListSaveService/save', {}, function (result) {
+      if (result.code == '200' && result.success) {
+        console.log('上传成功');
+      } else {
+        alert('上传失败');
+      }
+    });
+  }
+
+  function getCheckedProducts(activityName, activity) {
     //获取被勾选的产品
     let checkboxList = $('input');
     let checkedAllList = [];
@@ -135,19 +205,19 @@
       return;
     }
     productList.forEach(items => {
-      let checkrdItem = {};
+      let checkedItem = {};
       let checkedList = [];
-      items.products.forEach(item => {
+      items.product.forEach(item => {
         for (let i = 0; i < checkedIdList.length; i++) {
-          if (item.productId == checkedIdList[i]) {
-            checkrdItem.name = items.name;
+          if (item.productCode == checkedIdList[i]) {
+            checkedItem.name = items.productModule;
             checkedList.push(item);
           }
         }
-        checkrdItem.products = checkedList;
+        checkedItem.product = checkedList;
       });
-      if (checkrdItem.products && checkrdItem.products.length > 0) {
-        checkedAllList.push(checkrdItem);
+      if (checkedItem.product && checkedItem.product.length > 0) {
+        checkedAllList.push(checkedItem);
       }
     });
     let result = $('.result');
@@ -156,18 +226,18 @@
     envList.forEach(item => {
       //环境名称
       result.append($("<div class='result-content-env'></div>").text(item.name));
-      createUrl(item.env, checkedAllList, activity, result,agent);
+      createUrl(item.env, checkedAllList, activity, result);
     })
   }
 
   //拼接产品参数
-  function createUrl(env, checkedAllList, activity, result,agent) {
+  function createUrl(env, checkedAllList, activity, result) {
     checkedAllList.forEach(items => {
-      items.products.forEach(item => {
+      items.product.forEach(item => {
         //商品名称
-        result.append($("<p class=\"result-item-c\"></p>").text(item.name));
+        result.append($("<p class=\"result-item-c\"></p>").text(item.productName));
         //活动链接
-        let url = `${env}${item.productUrl}?productId=${item.productId}&agent=${agent}&activity=${encodeURIComponent(activity)}`;
+        let url = `${env}${item.productUrl}?productId=${item.productCode}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
         result.append($("<p class=\"result-item-c\"></p>").text(url));
       })
     })
