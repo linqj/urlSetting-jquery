@@ -59,6 +59,7 @@
   var sharePersonId = '';//分享人ID
   var sharePersonFrom = '';//分享来源
   var agentCode = '';//代理人工号
+//  var clickIndex=0;//提交次数
   $(document).ready(function () {
     //加载环境参数
     envList = [{name: 'test环境', env: 'http://hengqinlife-test.e-hqins.com'},
@@ -76,8 +77,25 @@
     }
     //获取产品列表
     $.post(envApi + '/api/activityProductAndModuleService/findAll', {}, function (result) {
+      console.log('result');
+      console.log(result);
       if (result.code=='200'&&result.success) {
         productList=result.data;
+        let productDetail = $('.product-detail');
+        for (let i = 0; i < productList.length; i++) {
+          console.log(productList);
+          let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].productModule);
+          productDetail.append(formItemTitle);
+          let products = productList[i].rules;
+          for (let j = 0; j < products.length; j++) {
+            let formItem = $("<div class='form-item'></div>");
+            let productName = $("<span class='form-item-name'></span>").text(products[j].productName);
+            let productId = $("<span class='form-item-id'></span>").text(products[j].productId);
+            let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productId);
+            formItem.append(productName, productId, productCheck);
+            productDetail.append(formItem);
+          }
+        }
       }else{
         alert('获取产品失败');
       }
@@ -91,20 +109,7 @@
 //        {productCode: 10034, productName: "超值自驾保", productUrl: '/productDetailNew'},
 //        {productCode: 10029, productName: "优护宝终身意外险", productUrl: '/productDetailNew'}]
 //    }];
-    let productDetail = $('.product-detail');
-    for (let i = 0; i < productList.length; i++) {
-      let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].productModule);
-      productDetail.append(formItemTitle);
-      let products = productList[i].product;
-      for (let j = 0; j < products.length; j++) {
-        let formItem = $("<div class='form-item'></div>");
-        let productName = $("<span class='form-item-name'></span>").text(products[j].productName);
-        let productId = $("<span class='form-item-id'></span>").text(products[j].productCode);
-        let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productCode);
-        formItem.append(productName, productId, productCheck);
-        productDetail.append(formItem);
-      }
-    }
+
   });
 
   //刷新
@@ -148,14 +153,14 @@
     let checkedList = [];
     productList.forEach(items => {
       let activityUrl = {};
-      items.product.forEach(item => {
+      items.rules.forEach(item => {
         let checkedItem = {};
         for (let i = 0; i < checkedIdList.length; i++) {
-          if (item.productCode == checkedIdList[i]) {
-            checkedItem.productId = item.productCode;
+          if (item.productId == checkedIdList[i]) {
+            checkedItem.productCode = item.productId;
             checkedItem.productName = item.productName;
             envList.forEach(envItem => {
-              let url = `${envItem.env}${item.productUrl}?productId=${item.productCode}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
+              let url = `${envItem.env}${item.productUrl}?productId=${item.productId}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
               if (envItem.name == 'test环境') {
                 activityUrl.test = url;
               } else if (envItem.name == 'uat环境') {
@@ -164,7 +169,7 @@
                 activityUrl.prd = url;
               }
             });
-            checkedItem.activityUrl = activityUrl;
+            checkedItem.activityUrl = JSON.stringify(activityUrl);
             checkedList.push(checkedItem);
           }
         }
@@ -180,7 +185,9 @@
       activityProductList: checkedList
     };
     //上传数据
-    $.post(envApi + 'api/ActivityProductDetailListSaveService/save', {}, function (result) {
+    paramsObj=JSON.stringify(paramsObj);
+    console.log(paramsObj);
+    $.post(envApi + '/api/ActivityProductDetailListSaveService/save', paramsObj, function (result) {
       if (result.code == '200' && result.success) {
         console.log('上传成功');
       } else {
@@ -207,9 +214,9 @@
     productList.forEach(items => {
       let checkedItem = {};
       let checkedList = [];
-      items.product.forEach(item => {
+      items.rules.forEach(item => {
         for (let i = 0; i < checkedIdList.length; i++) {
-          if (item.productCode == checkedIdList[i]) {
+          if (item.productId == checkedIdList[i]) {
             checkedItem.name = items.productModule;
             checkedList.push(item);
           }
