@@ -46,12 +46,11 @@
   </div>
   <div class="result">
     <div class="url-title">配置结果</div>
-
   </div>
 </div>
 <script>
   var envList = [];
-  var envApi = 'http://106.14.194.157:9034';
+  var envApi = 'http://192.168.25.130:9034';
   var productList = [];
   var activityId = '';//活动id
   var activityName = '';//活动名称
@@ -59,7 +58,7 @@
   var sharePersonId = '';//分享人ID
   var sharePersonFrom = '';//分享来源
   var agentCode = '';//代理人工号
-//  var clickIndex=0;//提交次数
+  //  var clickIndex=0;//提交次数
   $(document).ready(function () {
     //加载环境参数
     envList = [{name: 'test环境', env: 'http://hengqinlife-test.e-hqins.com'},
@@ -75,41 +74,47 @@
         envParent.append(envItem);
       }
     }
-    //获取产品列表
-    $.post(envApi + '/api/activityProductAndModuleService/findAll', {}, function (result) {
-      console.log('result');
-      console.log(result);
-      if (result.code=='200'&&result.success) {
-        productList=result.data;
+    productList=[{
+      productName: '横琴宜家年金保险（万能型）',
+        productId: '10037'
+    },{
+      productName: '海陆空交通意外险',
+        productId: '10035'
+    },{
+      productName: '超值自驾保',
+        productId: '10034'
+    },{
+      productName: '优护宝终身意外险',
+        productId: '10029'
+    },{
+      productName: '百万医疗险"(横琴尊享人生医疗保险)',
+        productId: '10021'
+    },{
+      productName: '优爱宝终身寿险',
+        productId: '10027'
+    },{
+      productName: '百万乐途两全保险',
+        productId: '10018'
+    },{
+      productName: '优康保终身重大疾病保险',
+        productId: '10025'
+    },{
+      productName: '优护宝定期意外伤害保险',
+        productId: '10020'
+    },{
+      productName: '优爱宝定期寿险',
+        productId: '10019'
+    } 
+    ];
         let productDetail = $('.product-detail');
         for (let i = 0; i < productList.length; i++) {
-          console.log(productList);
-          let formItemTitle = $("<div class='form-item-title'></div>").text(productList[i].productModule);
-          productDetail.append(formItemTitle);
-          let products = productList[i].rules;
-          for (let j = 0; j < products.length; j++) {
             let formItem = $("<div class='form-item'></div>");
-            let productName = $("<span class='form-item-name'></span>").text(products[j].productName);
-            let productId = $("<span class='form-item-id'></span>").text(products[j].productId);
-            let productCheck = $(' <input type="checkbox" name="product">').val(products[j].productId);
+            let productName = $("<span class='form-item-name'></span>").text(productList[i].productName);
+            let productId = $("<span class='form-item-id'></span>").text(productList[i].productId);
+            let productCheck = $(' <input type="checkbox" name="product">').val(productList[i].productId);
             formItem.append(productName, productId, productCheck);
             productDetail.append(formItem);
-          }
         }
-      }else{
-        alert('获取产品失败');
-      }
-    });
-//    productList = [{
-//      productModule: '小猪罐',
-//      product: [{productCode: 10037, productName: "横琴宜家年金保险（万能型）", productUrl: '/moneyProductDetail'}]
-//    }, {
-//      productModule: '常规产品',
-//      product: [{productCode: 10035, productName: "海陆空交通意外险", productUrl: '/productDetailNew'},
-//        {productCode: 10034, productName: "超值自驾保", productUrl: '/productDetailNew'},
-//        {productCode: 10029, productName: "优护宝终身意外险", productUrl: '/productDetailNew'}]
-//    }];
-
   });
 
   //刷新
@@ -130,9 +135,12 @@
     //生成activity
     let params = {activityId: activityId, channelNo: channelNo, shareId: '', shareFrom: ''};
     let activity = btoa(JSON.stringify(params));
-    getCheckedProducts(activityName, activity);
     //上传信息
+    console.log(activity)
     getCreatedProducts(activityName, activity,);
+    let activityUrl="eyJhY3Rpdml0eUlkIjoiMzA2ZHJieCIsImNoYW5uZWxObyI6IjMwNiIsInNoYXJlSWQiOm51bGwsInNoYXJlRnJvbSI6bnVsbH0==";
+  console.log('window.atob(activityUrl)')
+  console.log(window.atob(activity))
   }
 
   function getCreatedProducts(activityName, activity) {
@@ -146,14 +154,10 @@
         checkedIdList.push(checkedId);
       }
     }
-    if (checkedIdList.length < 1) {
-      alert('请选择要配置的商品');
-      return;
-    }
+
     let checkedList = [];
-    productList.forEach(items => {
+    productList.forEach(item => {
       let activityUrl = {};
-      items.rules.forEach(item => {
         let checkedItem = {};
         for (let i = 0; i < checkedIdList.length; i++) {
           if (item.productId == checkedIdList[i]) {
@@ -173,7 +177,6 @@
             checkedList.push(checkedItem);
           }
         }
-      });
     });
     let paramsObj = {
       activityId: activityId,
@@ -184,16 +187,53 @@
       sharePersonFrom: sharePersonFrom,
       activityProductList: checkedList
     };
+    if (checkedIdList.length < 1) {
+      alert('请选择要配置的商品');
+      return;
+    }
+    if (!activityName) {
+      alert('请输入活动名称');
+      return;
+    }
+    if (!activityId) {
+      alert('请输入活动id');
+      return;
+    }
+    if (!channelNo) {
+      alert('请输入渠道号');
+      return;
+    }
+    if (!agentCode) {
+      alert('请输入代理工号');
+      return;
+    }
     //上传数据
     paramsObj=JSON.stringify(paramsObj);
-    console.log(paramsObj);
-    $.post(envApi + '/api/ActivityProductDetailListSaveService/save', paramsObj, function (result) {
-      if (result.code == '200' && result.success) {
-        console.log('上传成功');
-      } else {
-        alert('上传失败');
-      }
-    });
+    let result = $('.result');
+         result.empty();
+         getCheckedProducts(activityName, activity);
+    // $.ajax({
+    //   //提交数据的类型 POST GET
+    //   type: "POST",
+    //   contentType: 'application/json;charset=UTF-8',
+    //   url: envApi + '/api/ActivityProductDetailListSaveService/save',
+    //   dataType: "json",
+    //   data: paramsObj,
+    //   async: false,
+    //   success: function (data) {
+    //    console.log('提交成功');
+    //    if(data.success){
+    //      let result = $('.result');
+    //      result.empty();
+    //      getCheckedProducts(activityName, activity);
+    //    }else{
+    //      alert(data.message);
+    //    }
+    //   },
+    //   error: function () {
+    //     alert('接口请求失败');
+    //   }
+    // });
   }
 
   function getCheckedProducts(activityName, activity) {
@@ -207,22 +247,17 @@
         checkedIdList.push(checkedId);
       }
     }
-    if (checkedIdList.length < 1) {
-      alert('请选择要配置的商品');
-      return;
-    }
-    productList.forEach(items => {
+
+    productList.forEach(item => {
       let checkedItem = {};
       let checkedList = [];
-      items.rules.forEach(item => {
         for (let i = 0; i < checkedIdList.length; i++) {
           if (item.productId == checkedIdList[i]) {
-            checkedItem.name = items.productModule;
+            // checkedItem.name = items.productModule;
             checkedList.push(item);
           }
         }
         checkedItem.product = checkedList;
-      });
       if (checkedItem.product && checkedItem.product.length > 0) {
         checkedAllList.push(checkedItem);
       }
@@ -244,7 +279,7 @@
         //商品名称
         result.append($("<p class=\"result-item-c\"></p>").text(item.productName));
         //活动链接
-        let url = `${env}${item.productUrl}?productId=${item.productCode}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
+        let url = `${env}/productDetailNew?productId=${item.productId}&agent=${agentCode}&activity=${encodeURIComponent(activity)}`;
         result.append($("<p class=\"result-item-c\"></p>").text(url));
       })
     })
